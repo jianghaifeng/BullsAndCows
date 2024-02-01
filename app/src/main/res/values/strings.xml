@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">BullsAndCows</string>
+    <string name="title">Bulls and Cows</string>
+    <string name="New">New Game</string>
 </resources>
