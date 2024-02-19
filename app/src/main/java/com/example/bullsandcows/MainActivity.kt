@@ -10,13 +10,14 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
+    private val roundLimit = 6
     private lateinit var candidate: TextView
     private var disabledButtons = hashSetOf<Button>()
     private var nList = mutableListOf<TextView>()
     private var bList = mutableListOf<TextView>()
     private var cList = mutableListOf<TextView>()
     private var round = 0
-    private var targetNumber = generateNewNumber()
+    private var targetNumber = ""
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -57,23 +58,24 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         cList.add(3, findViewById(R.id.c4))
         cList.add(4, findViewById(R.id.c5))
         cList.add(5, findViewById(R.id.c6))
+
+        newGame()
     }
 
     private fun newGame() {
-        targetNumber = generateNewNumber()
+        generateNewNumber()
         enableAll()
-        clearAll()
-        candidate.text = ""
+        clearGuessList()
+        resetCandidate()
         round = 0
     }
 
-    private fun generateNewNumber(): String {
+    private fun generateNewNumber() {
         val numbers = (0..9).toList()
         val result = numbers.shuffled()
-        val ans =
+        targetNumber =
             result.subList(0, 4).joinToString(separator = "", transform = { i -> i.toString() })
-        Log.d("bac", ans)
-        return ans
+        Log.d("bac", targetNumber)
     }
 
     private fun isNumberBtn(id: Int): Boolean {
@@ -92,16 +94,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         return id == R.id.btnGO
     }
 
+    private fun isNewGameBtn(id: Int): Boolean {
+        return id == R.id.btnNew
+    }
+
     private fun enableAll() {
         disabledButtons.forEach { it.isEnabled = true }
     }
 
-    private fun disableBtn(btn: Button) {
-        btn.isEnabled = false
-        disabledButtons.add(btn)
-    }
-
-    private fun clearAll() {
+    private fun clearGuessList() {
         nList.forEach { it.text = "" }
         bList.forEach { it.text = "" }
         cList.forEach { it.text = "" }
@@ -127,39 +128,61 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         alertDialog.show()
     }
 
-    override fun onClick(v: View?) {
-        val btn = v as Button
-        if (isNumberBtn(v.id)) {
-            if (candidate.length() < 4) {
-                candidate.append(btn.text)
-                disableBtn(btn)
-            }
-        } else if (isClearBtn(v.id)) {
-            candidate.text = ""
-            enableAll()
-        } else if (isSubmitBtn(v.id)) {
-            if (candidate.length() == 4 && round < 6) {
-                nList[round].text = candidate.text
-                val pair = countBullsCows(candidate.text.toString())
-                bList[round].text = pair.first.toString()
-                cList[round].text = pair.second.toString()
+    private fun candidateFinished(): Boolean {
+        return candidate.length() == 4
+    }
 
-                if (pair.first == 4) {
-                    showAlertDialog("Great", "哇，答对了，你太棒了")
-                    return
-                }
-                enableAll()
-                round++
-                if (round == 6) {
-                    showAlertDialog("Sorry", "正确答案是$targetNumber，再接再厉哦")
-                    return
-                }
-                candidate.text = ""
-            }
-        } else if (v.id == R.id.btnNew) {
-            newGame()
+    private fun inputCandidate(btn: Button) {
+        if (!candidateFinished()) {
+            candidate.append(btn.text)
+            btn.isEnabled = false
+            disabledButtons.add(btn)
         }
     }
 
+    private fun resetCandidate() {
+        candidate.text = ""
+    }
 
+    private fun reachRoundLimit(): Boolean {
+        return round == roundLimit
+    }
+
+    private fun increaseRound() {
+        round++
+    }
+
+    private fun guess(s: String): Boolean {
+        nList[round].text = s
+        val result = countBullsCows(candidate.text.toString())
+        bList[round].text = result.first.toString()
+        cList[round].text = result.second.toString()
+        return result.first == 4
+    }
+
+    override fun onClick(v: View?) {
+        val btn = v as Button
+        if (isNumberBtn(v.id)) {
+            inputCandidate(btn)
+        } else if (isClearBtn(v.id)) {
+            resetCandidate()
+            enableAll()
+        } else if (isSubmitBtn(v.id)) {
+            if (candidateFinished() && !reachRoundLimit()) {
+                if (guess(candidate.text.toString())) {
+                    showAlertDialog("Great", "哇，答对了，你太棒了")
+                    return
+                }
+                increaseRound()
+                if (reachRoundLimit()) {
+                    showAlertDialog("Sorry", "正确答案是$targetNumber，再接再厉哦")
+                    return
+                }
+                enableAll()
+                resetCandidate()
+            }
+        } else if (isNewGameBtn(v.id)) {
+            newGame()
+        }
+    }
 }
