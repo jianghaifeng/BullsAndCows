@@ -1,8 +1,6 @@
 package com.example.bullsandcows
 
 import android.os.Bundle
-import android.util.Log
-import android.util.Pair
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
@@ -10,19 +8,51 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
-    private val roundLimit = 6
     private lateinit var candidate: TextView
-    private var disabledButtons = hashSetOf<Button>()
-    private var nList = mutableListOf<TextView>()
-    private var bList = mutableListOf<TextView>()
-    private var cList = mutableListOf<TextView>()
-    private var round = 0
-    private var targetNumber = ""
+
+    private var btnList = mutableListOf<Button>()
+    private var nTvList = mutableListOf<TextView>()
+    private var bTvList = mutableListOf<TextView>()
+    private var cTvList = mutableListOf<TextView>()
+
+    private lateinit var app : BacApplication
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         candidate = findViewById(R.id.candidate)
+
+        btnList.add(0, findViewById(R.id.btn0))
+        btnList.add(1, findViewById(R.id.btn1))
+        btnList.add(2, findViewById(R.id.btn2))
+        btnList.add(3, findViewById(R.id.btn3))
+        btnList.add(4, findViewById(R.id.btn4))
+        btnList.add(5, findViewById(R.id.btn5))
+        btnList.add(6, findViewById(R.id.btn6))
+        btnList.add(7, findViewById(R.id.btn7))
+        btnList.add(8, findViewById(R.id.btn8))
+        btnList.add(9, findViewById(R.id.btn9))
+
+        nTvList.add(0, findViewById(R.id.n1))
+        nTvList.add(1, findViewById(R.id.n2))
+        nTvList.add(2, findViewById(R.id.n3))
+        nTvList.add(3, findViewById(R.id.n4))
+        nTvList.add(4, findViewById(R.id.n5))
+        nTvList.add(5, findViewById(R.id.n6))
+
+        bTvList.add(0, findViewById(R.id.b1))
+        bTvList.add(1, findViewById(R.id.b2))
+        bTvList.add(2, findViewById(R.id.b3))
+        bTvList.add(3, findViewById(R.id.b4))
+        bTvList.add(4, findViewById(R.id.b5))
+        bTvList.add(5, findViewById(R.id.b6))
+
+        cTvList.add(0, findViewById(R.id.c1))
+        cTvList.add(1, findViewById(R.id.c2))
+        cTvList.add(2, findViewById(R.id.c3))
+        cTvList.add(3, findViewById(R.id.c4))
+        cTvList.add(4, findViewById(R.id.c5))
+        cTvList.add(5, findViewById(R.id.c6))
 
         findViewById<Button>(R.id.btn0).setOnClickListener(this)
         findViewById<Button>(R.id.btn1).setOnClickListener(this)
@@ -38,44 +68,28 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         findViewById<Button>(R.id.btnGO).setOnClickListener(this)
         findViewById<Button>(R.id.btnNew).setOnClickListener(this)
 
-        nList.add(0, findViewById(R.id.n1))
-        nList.add(1, findViewById(R.id.n2))
-        nList.add(2, findViewById(R.id.n3))
-        nList.add(3, findViewById(R.id.n4))
-        nList.add(4, findViewById(R.id.n5))
-        nList.add(5, findViewById(R.id.n6))
+        app = application as BacApplication
 
-        bList.add(0, findViewById(R.id.b1))
-        bList.add(1, findViewById(R.id.b2))
-        bList.add(2, findViewById(R.id.b3))
-        bList.add(3, findViewById(R.id.b4))
-        bList.add(4, findViewById(R.id.b5))
-        bList.add(5, findViewById(R.id.b6))
-
-        cList.add(0, findViewById(R.id.c1))
-        cList.add(1, findViewById(R.id.c2))
-        cList.add(2, findViewById(R.id.c3))
-        cList.add(3, findViewById(R.id.c4))
-        cList.add(4, findViewById(R.id.c5))
-        cList.add(5, findViewById(R.id.c6))
-
-        newGame()
+        reload()
     }
 
-    private fun newGame() {
-        generateNewNumber()
-        enableAll()
-        clearGuessList()
-        resetCandidate()
-        round = 0
+    private fun reload() {
+        candidate.text = app.candidateNumber
+        app.candidateNumber.forEach { btnList[it - '0'].isEnabled = false }
+        renderGuessList()
     }
 
-    private fun generateNewNumber() {
-        val numbers = (0..9).toList()
-        val result = numbers.shuffled()
-        targetNumber =
-            result.subList(0, 4).joinToString(separator = "", transform = { i -> i.toString() })
-        Log.d("bac", targetNumber)
+    private fun reset() {
+        app.candidateNumber = ""
+        candidate.text = ""
+        btnList.forEach { it.isEnabled = true }
+        renderGuessList()
+    }
+
+    private fun renderGuessList() {
+        app.nList.forEachIndexed { index, s -> nTvList[index].text = s }
+        app.bList.forEachIndexed { index, s -> bTvList[index].text = s }
+        app.cList.forEachIndexed { index, s -> cTvList[index].text = s }
     }
 
     private fun isNumberBtn(id: Int): Boolean {
@@ -98,25 +112,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         return id == R.id.btnNew
     }
 
-    private fun enableAll() {
-        disabledButtons.forEach { it.isEnabled = true }
-    }
-
-    private fun clearGuessList() {
-        nList.forEach { it.text = "" }
-        bList.forEach { it.text = "" }
-        cList.forEach { it.text = "" }
-    }
-
-    private fun countBullsCows(guess: String): Pair<Int, Int> {
-        var bulls = 0
-        var all = 0
-        for (i in 0..3) {
-            if (targetNumber[i] == guess[i]) bulls++
-            if (targetNumber.contains(guess[i])) all++
-        }
-
-        return Pair(bulls, all - bulls)
+    private fun newGame() {
+        app.newGame()
+        reset()
     }
 
     private fun showAlertDialog(title: String, message: String) {
@@ -128,61 +126,30 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         alertDialog.show()
     }
 
-    private fun candidateFinished(): Boolean {
-        return candidate.length() == 4
-    }
-
-    private fun inputCandidate(btn: Button) {
-        if (!candidateFinished()) {
-            candidate.append(btn.text)
-            btn.isEnabled = false
-            disabledButtons.add(btn)
-        }
-    }
-
-    private fun resetCandidate() {
-        candidate.text = ""
-    }
-
-    private fun reachRoundLimit(): Boolean {
-        return round == roundLimit
-    }
-
-    private fun increaseRound() {
-        round++
-    }
-
-    private fun guess(s: String): Boolean {
-        nList[round].text = s
-        val result = countBullsCows(candidate.text.toString())
-        bList[round].text = result.first.toString()
-        cList[round].text = result.second.toString()
-        return result.first == 4
-    }
-
     override fun onClick(v: View?) {
         val btn = v as Button
         if (isNumberBtn(v.id)) {
-            inputCandidate(btn)
-        } else if (isClearBtn(v.id)) {
-            resetCandidate()
-            enableAll()
-        } else if (isSubmitBtn(v.id)) {
-            if (candidateFinished() && !reachRoundLimit()) {
-                if (guess(candidate.text.toString())) {
-                    showAlertDialog("Great", "哇，答对了，你太棒了")
-                    return
-                }
-                increaseRound()
-                if (reachRoundLimit()) {
-                    showAlertDialog("Sorry", "正确答案是$targetNumber，再接再厉哦")
-                    return
-                }
-                enableAll()
-                resetCandidate()
+            if (app.candidateNumber.length < 4) {
+                app.candidateNumber += btn.text
+                candidate.text = app.candidateNumber
+                btn.isEnabled = false
             }
+        } else if (isClearBtn(v.id)) {
+            reset()
         } else if (isNewGameBtn(v.id)) {
             newGame()
+        } else if (isSubmitBtn(v.id)) {
+            if (candidate.length() == 4) {
+                val result = app.guess(candidate.text.toString())
+                if (result.first) {
+                    if (result.second) {
+                        showAlertDialog("Great", "太棒了，回答正确！")
+                    } else {
+                        showAlertDialog("Sorry", "正确答案是 ${app.targetNumber}, 再接再厉哦！")
+                    }
+                }
+                reset()
+            }
         }
     }
 }
